@@ -3,9 +3,21 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 import time
+import gspread
+from google.oauth2.service_account import Credentials
+
 
 load_dotenv()
 TOKEN = os.getenv('token')
+
+def autenticar_google_sheets(json_key_file):
+    """Função para autenticar ao google sheets, o json_key_file é o arquivo obtidido no Console da Google"""
+    scopes = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    credentials = Credentials.from_service_account_file(json_key_file, scopes=scopes)
+    return gspread.authorize(credentials)
 
 def construir_url(endpoint, parametros=None, pagina=1):
     """Função para construir a url que será utilizada para retornar os dados da Api Tiny"""
