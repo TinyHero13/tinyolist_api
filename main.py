@@ -9,15 +9,7 @@ from google.oauth2.service_account import Credentials
 
 load_dotenv()
 TOKEN = os.getenv('token')
-
-def autenticar_google_sheets(json_key_file):
-    """Função para autenticar ao google sheets, o json_key_file é o arquivo obtidido no Console da Google"""
-    scopes = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    credentials = Credentials.from_service_account_file(json_key_file, scopes=scopes)
-    return gspread.authorize(credentials)
+CHAVE_ABA = os.getenv('chave_aba')
 
 def construir_url(endpoint, parametros=None, pagina=1):
     """Função para construir a url que será utilizada para retornar os dados da Api Tiny"""
@@ -47,9 +39,33 @@ def buscar_endpoint_paginada(endpoint, nome_endpoint=None):
 
     return pd.DataFrame(todos_dados)
 
+def autenticar_google_sheets(json_key_file):
+    """Função para autenticar ao google sheets, o json_key_file é o arquivo obtidido no Console da Google"""
+    scopes = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    credentials = Credentials.from_service_account_file(json_key_file, scopes=scopes)
+    return gspread.authorize(credentials)
+
+def inserir_dados_lote(sheet, data, batch_size=200):
+    gc = autenticar_google_sheets('credentials.json')
+    spreadsheet = gc.open_by_key(CHAVE_ABA)
+    sheet = spreadsheet.worksheet(sheet)
+    sheet.clear()
+
+    for start_index in range(0, len(data), batch_size):
+        end_index = min(start_index + batch_size, len(data))
+        batch = data[start_index:end_index]
+        sheet.update(f"A{start_index + 1}:Z{end_index}", batch)
+        print(f"Linhas inseridas {start_index + 1} até {end_index}.")
+        time.sleep(1)
+
 def main():
     produtos_df = buscar_endpoint_paginada('produtos.pesquisa', 'produtos')
-    print(produtos_df)
+    
+    produtos_data = [produtos_df.columns.tolist()] + produtos_df.values.tolist()
+    inserir_dados_lote('produto', produtos_data)
 
 if __name__ == "__main__":
     main()
